@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎁 Eid Gift Box — Deployment Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root {
+    --gold: #D4AF37; --gold2: #F5D76E;
+    --bg: #07090F; --surface: #0E1220;
+    --border: rgba(212,175,55,0.2);
+    --text: #e2ddd5; --muted: rgba(255,255,255,0.45);
+    --green: #4ADE80; --blue: #60A5FA; --red: #F87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 15px;
+    line-height: 1.7; padding: 0 0 80px;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(160deg, #0D0820, #07090F);
+    border-bottom: 1px solid var(--border);
+    padding: 52px 24px 40px; text-align: center;
+  }
+  .hero-icon { font-size: 3.5rem; display: block; margin-bottom: 16px;
+    filter: drop-shadow(0 0 24px rgba(212,175,55,0.7));
+    animation: float 4s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .hero h1 {
+    font-family: 'Cinzel Decorative', cursive; font-size: clamp(1.2rem,3vw,1.8rem);
+    background: linear-gradient(130deg, var(--gold), var(--gold2), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    letter-spacing: 2px; margin-bottom: 10px;
+  }
+  .hero p { color: var(--muted); font-size: 0.95rem; }
+  .hero .badge {
+    display: inline-block; margin-top: 14px; padding: 6px 18px;
+    background: rgba(212,175,55,0.1); border: 1px solid var(--border);
+    border-radius: 100px; font-size: 0.78rem; color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  /* Layout */
+  .container { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+  /* Progress steps */
+  .steps-nav {
+    display: flex; gap: 0; margin: 32px 0 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 6px; overflow-x: auto;
+  }
+  .step-pill {
+    flex: 1; min-width: 100px; padding: 10px 8px; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font-size: 0.68rem; color: var(--muted); letter-spacing: 0.5px;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .step-pill .num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 600;
+  }
+  .step-pill.done .num { background: rgba(74,222,128,0.15); border-color: var(--green); color: var(--green); }
+  .step-pill.active .num { background: rgba(212,175,55,0.2); border-color: var(--gold); color: var(--gold); }
+
+  /* Section cards */
+  .section {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+  }
+  .section-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .section-num {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(212,175,55,0.12); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel Decorative', cursive; font-size: 0.8rem; color: var(--gold);
+  }
+  .section-title { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 1rem; }
+  .section-sub { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+  .section-body { padding: 20px 24px; }
+
+  /* Steps inside section */
+  .step { display: flex; gap: 14px; margin-bottom: 20px; }
+  .step:last-child { margin-bottom: 0; }
+  .step-dot {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; margin-top: 2px;
+    background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: var(--gold);
+  }
+  .step-content { flex: 1; min-width: 0; }
+  .step-label { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .step-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+
+  /* Code blocks */
+  .code-block {
+    background: #060810; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; overflow: hidden; margin: 10px 0;
+  }
+  .code-header {
+    padding: 8px 14px; background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .code-lang { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .copy-btn {
+    font-size: 0.65rem; padding: 3px 10px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--gold); color: var(--gold); }
+  pre {
+    padding: 16px 18px; overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem; line-height: 1.65; color: #cdd6f4;
+  }
+  .hl-gold { color: var(--gold2); }
+  .hl-green { color: #a6e3a1; }
+  .hl-blue { color: #89b4fa; }
+  .hl-red { color: #f38ba8; }
+  .hl-muted { color: #6c7086; }
+
+  /* Inline code */
+  code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82em;
+    background: rgba(255,255,255,0.07); padding: 2px 6px;
+    border-radius: 5px; color: var(--gold2);
+  }
+
+  /* Alert boxes */
+  .alert {
+    display: flex; gap: 12px; padding: 14px 16px;
+    border-radius: 12px; margin: 14px 0; font-size: 0.88rem; line-height: 1.6;
+  }
+  .alert-icon { flex-shrink: 0; font-size: 1.1rem; }
+  .alert.info { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+  .alert.success { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); color: #86efac; }
+  .alert.warning { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); color: #fcd34d; }
+
+  /* Link */
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Screenshot placeholder */
+  .screen-mock {
+    background: linear-gradient(135deg, #0D0820, #050D14);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; margin: 12px 0; text-align: center;
+    font-size: 0.82rem; color: var(--muted); position: relative;
+    min-height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+  }
+  .screen-mock .label { font-family: 'Cinzel Decorative', cursive; font-size: 0.58rem; color: var(--gold); letter-spacing: 2px; }
+
+  /* Final box */
+  .final-card {
+    margin-top: 28px; padding: 28px 24px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.04));
+    border: 1px solid rgba(212,175,55,0.3); text-align: center;
+  }
+  .final-card h2 { font-family: 'Cinzel Decorative', cursive; font-size: 0.9rem;
+    color: var(--gold); letter-spacing: 2px; margin-bottom: 10px; }
+  .final-card p { color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
+
+  /* File tree */
+  .file-tree {
+    background: #060810; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+    line-height: 2; color: #cdd6f4;
+  }
+  .ft-folder { color: #89b4fa; }
+  .ft-file   { color: #a6e3a1; }
+  .ft-config { color: var(--gold2); }
+  .ft-muted  { color: #6c7086; }
+
+  @media (max-width: 600px) {
+    .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-icon">🎁</span>
+  <h1>Eid Gift Box — Deploy Guide</h1>
+  <p>From your computer to a live link your friends can use — in ~15 minutes</p>
+  <span class="badge">Firebase (free) + Vercel (free) = 🔥</span>
+</div>
+
+<div class="container">
+
+  <!-- OVERVIEW -->
+  <div class="steps-nav">
+    <div class="step-pill done"><div class="num">✓</div>Code Ready</div>
+    <div class="step-pill active"><div class="num">1</div>Firebase</div>
+    <div class="step-pill"><div class="num">2</div>GitHub</div>
+    <div class="step-pill"><div class="num">3</div>Vercel</div>
+    <div class="step-pill"><div class="num">4</div>Live! 🎉</div>
+  </div>
+
+  <div class="alert info" style="margin-top:20px">
+    <span class="alert-icon">ℹ️</span>
+    <div><strong>What you need:</strong> A free Google account (for Firebase) and a free GitHub account. That's it — everything else is free and takes about 15 minutes total.</div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       STEP 1: FIREBASE
+  ══════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <div class="section-title">Set up Firebase (your free database + login)</div>
+        <div class="section-sub">Takes ~5 minutes • Free forever on Spark plan</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="step-dot">1</div>
+        <div class="step-content">
+          <div class="step-label">Go to Firebase Console</div>
+          <div class="step-desc">Open <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> and sign in with your Google account.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">2</div>
+        <div class="step-content">
+          <div class="step-label">Create a new project</div>
+          <div class="step-desc">Click <strong>"Add project"</strong> → Name it <code>eid-gift-box</code> → Disable Google Analytics (not needed) → Click <strong>"Create project"</strong></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">3</div>
+        <div class="step-content">
+          <div class="step-label">Add a Web App & get your config keys</div>
+          <div class="step-desc">
+            In your project dashboard, click the <strong>&lt;/&gt; Web</strong> icon → Give it a nickname like <code>eid-gift-box</code> → Click <strong>"Register app"</strong>.<br><br>
+            You'll see a config object like this — <strong>copy all the values:</strong>
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">javascript — copy these values</span>
+            </div>
+            <pre><span class="hl-muted">// Firebase gives you something like this:</span>
+<span class="hl-blue">const</span> firebaseConfig = {
+  apiKey:            <span class="hl-green">"AIzaSyB..."</span>,        <span class="hl-muted">← copy this</span>
+  authDomain:        <span class="hl-green">"eid-gift-box.firebaseapp.com"</span>,
+  projectId:         <span class="hl-green">"eid-gift-box"</span>,
+  storageBucket:     <span class="hl-green">"eid-gift-box.appspot.com"</span>,
+  messagingSenderId: <span class="hl-green">"123456789"</span>,
+  appId:             <span class="hl-green">"1:123456789:web:abc123"</span>,
+};</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">4</div>
+        <div class="step-content">
+          <div class="step-label">Paste values into <code>src/firebase.js</code></div>
+          <div class="step-desc">Open the <code>src/firebase.js</code> file and replace the placeholder text with your real values:</div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">src/firebase.js</span></div>
+            <pre><span class="hl-blue">const</span> firebaseConfig = {
+  apiKey:            <span class="hl-green">"YOUR_REAL_API_KEY"</span>,     <span class="hl-muted">← paste here</span>
+  authDomain:        <span class="hl-green">"YOUR_REAL_AUTH_DOMAIN"</span>,
+  projectId:         <span class="hl-green">"YOUR_REAL_PROJECT_ID"</span>,
+  storageBucket:     <span class="hl-green">"YOUR_REAL_BUCKET"</span>,
+  messagingSenderId: <span class="hl-green">"YOUR_REAL_SENDER_ID"</span>,
+  appId:             <span class="hl-green">"YOUR_REAL_APP_ID"</span>,
+};</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">5</div>
+        <div class="step-content">
+          <div class="step-label">Enable Firestore Database</div>
+          <div class="step-desc">
+            In the left sidebar: <strong>Build → Firestore Database</strong> → <strong>"Create database"</strong> → Choose <strong>"Start in test mode"</strong> → Pick any location → <strong>Done</strong>
+          </div>
+          <div class="alert warning">
+            <span class="alert-icon">⚠️</span>
+            <div>Test mode allows all reads/writes for 30 days. After that, paste the contents of <code>firestore.rules</code> in the Rules tab to secure your database.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">6</div>
+        <div class="step-content">
+          <div class="step-label">Enable Authentication</div>
+          <div class="step-desc">
+            In the left sidebar: <strong>Build → Authentication</strong> → <strong>"Get started"</strong> → Click <strong>Email/Password</strong> → Toggle it <strong>Enable</strong> → <strong>Save</strong>
+          </div>
+          <div class="alert success">
+            <span class="alert-icon">✅</span>
+            <div>Firebase is ready! Your database and login system are set up. On to GitHub.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       STEP 2: GITHUB
+  ══════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div>
+        <div class="section-title">Put your code on GitHub</div>
+        <div class="section-sub">Vercel deploys directly from GitHub — free forever</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="step-dot">1</div>
+        <div class="step-content">
+          <div class="step-label">Create a GitHub account (if you don't have one)</div>
+          <div class="step-desc">Go to <a href="https://github.com" target="_blank">github.com</a> → Sign up free. Takes 1 minute.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">2</div>
+        <div class="step-content">
+          <div class="step-label">Create a new repository</div>
+          <div class="step-desc">Click the <strong>"+"</strong> button top-right → <strong>"New repository"</strong> → Name it <code>eid-gift-box</code> → Keep it <strong>Public</strong> → Click <strong>"Create repository"</strong></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">3</div>
+        <div class="step-content">
+          <div class="step-label">Upload your project files</div>
+          <div class="step-desc">On your new repository page, click <strong>"uploading an existing file"</strong> link, then drag and drop the entire <code>eid-gift-box</code> folder contents. Make sure your file structure looks like this:</div>
+          <div class="file-tree">
+<span class="ft-folder">eid-gift-box/</span>
+├── <span class="ft-config">package.json</span>
+├── <span class="ft-config">firestore.rules</span>
+├── <span class="ft-folder">public/</span>
+│   └── <span class="ft-file">index.html</span>
+└── <span class="ft-folder">src/</span>
+    ├── <span class="ft-file">index.js</span>
+    ├── <span class="ft-file">App.js</span>  <span class="ft-muted">← with your Firebase values filled in</span>
+    └── <span class="ft-file">firebase.js</span>  <span class="ft-muted">← with your config values</span>
+          </div>
+          <div class="step-desc" style="margin-top:10px">Scroll down → Click <strong>"Commit changes"</strong></div>
+        </div>
+      </div>
+
+      <div class="alert success">
+        <span class="alert-icon">✅</span>
+        <div>Your code is on GitHub! Now Vercel will host it for free.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       STEP 3: VERCEL
+  ══════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div>
+        <div class="section-title">Deploy to Vercel (get your shareable link)</div>
+        <div class="section-sub">Takes ~3 minutes • Free forever • Auto-updates when you change code</div>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="step-dot">1</div>
+        <div class="step-content">
+          <div class="step-label">Sign up for Vercel</div>
+          <div class="step-desc">Go to <a href="https://vercel.com" target="_blank">vercel.com</a> → Click <strong>"Sign up"</strong> → Choose <strong>"Continue with GitHub"</strong> → Authorize Vercel</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">2</div>
+        <div class="step-content">
+          <div class="step-label">Import your repository</div>
+          <div class="step-desc">On your Vercel dashboard, click <strong>"Add New Project"</strong> → Find <code>eid-gift-box</code> in the list → Click <strong>"Import"</strong></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">3</div>
+        <div class="step-content">
+          <div class="step-label">Configure the project — no changes needed!</div>
+          <div class="step-desc">Vercel automatically detects it's a React app. The settings should be:</div>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">Vercel settings (auto-detected)</span></div>
+            <pre>Framework Preset:  <span class="hl-green">Create React App</span>  ← auto-detected ✓
+Build Command:     <span class="hl-gold">npm run build</span>       ← auto-filled ✓
+Output Directory:  <span class="hl-gold">build</span>               ← auto-filled ✓
+Install Command:   <span class="hl-gold">npm install</span>         ← auto-filled ✓</pre>
+          </div>
+          <div class="step-desc" style="margin-top:8px">Just click <strong>"Deploy"</strong> — no other settings needed!</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-dot">4</div>
+        <div class="step-content">
+          <div class="step-label">Wait ~2 minutes for deployment</div>
+          <div class="step-desc">Vercel builds and deploys your app. You'll see a progress screen. When it finishes you get a screen like this:</div>
+          <div class="screen-mock">
+            <div class="label">VERCEL DEPLOYMENT SUCCESS</div>
+            <div style="font-size:2rem">🎉</div>
+            <div style="color:#4ADE80;font-weight:600">Deployment successful!</div>
+            <div>Your site is live at: <strong style="color:#D4AF37">eid-gift-box-yourname.vercel.app</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert success">
+        <span class="alert-icon">🎉</span>
+        <div><strong>You're live!</strong> Vercel gives you a URL like <code>eid-gift-box-xyz.vercel.app</code> — copy it and share it with your friends right now!</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       STEP 4: OPTIONAL CUSTOM DOMAIN
+  ══════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div>
+        <div class="section-title">Optional: Custom domain name</div>
+        <div class="section-sub">e.g. eid-gift.com — costs ~$10/year from Namecheap</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="step-desc" style="margin-bottom:16px">
+        If you want a cleaner URL like <code>mygiftbox.com</code> instead of <code>eid-gift-box-xyz.vercel.app</code>:
+      </div>
+      <div class="step">
+        <div class="step-dot">1</div>
+        <div class="step-content">
+          <div class="step-label">Buy a domain (optional)</div>
+          <div class="step-desc">Go to <a href="https://namecheap.com" target="_blank">namecheap.com</a> → Search for a domain → Buy it (~$10/year for .com)</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">2</div>
+        <div class="step-content">
+          <div class="step-label">Add it to Vercel</div>
+          <div class="step-desc">Vercel Dashboard → Your project → Settings → Domains → Add your domain → Follow the DNS instructions → Done in ~5 minutes!</div>
+        </div>
+      </div>
+      <div class="alert info">
+        <span class="alert-icon">💡</span>
+        <div>The Vercel URL (<code>eid-gift-box-xyz.vercel.app</code>) works perfectly fine and is completely free! A custom domain is just for style.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TROUBLESHOOTING -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">?</div>
+      <div>
+        <div class="section-title">Troubleshooting</div>
+        <div class="section-sub">Common issues and fixes</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <div class="step-dot" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#F87171">!</div>
+        <div class="step-content">
+          <div class="step-label" style="color:#F87171">Build fails with "firebase not found"</div>
+          <div class="step-desc">Make sure <code>package.json</code> has <code>"firebase": "^10.7.1"</code> in dependencies. Vercel runs <code>npm install</code> automatically so this should install it.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#F87171">!</div>
+        <div class="step-content">
+          <div class="step-label" style="color:#F87171">Login doesn't work / auth error</div>
+          <div class="step-desc">Make sure you enabled Email/Password in Firebase Authentication. Also check that your <code>firebase.js</code> config values are correct (no extra spaces).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#F87171">!</div>
+        <div class="step-content">
+          <div class="step-label" style="color:#F87171">Firestore permission denied</div>
+          <div class="step-desc">Go to Firebase Console → Firestore → Rules → Make sure it's in test mode (allow read, write: if true) or paste the rules from <code>firestore.rules</code>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#F87171">!</div>
+        <div class="step-content">
+          <div class="step-label" style="color:#F87171">AI message generator doesn't work on deployed version</div>
+          <div class="step-desc">The AI feature uses the Anthropic API which requires a key. In the deployed version it will fall back to built-in preset messages automatically — everything else works perfectly!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="final-card">
+    <div style="font-size:2.5rem;margin-bottom:12px">🎁🌙✨</div>
+    <h2>You're All Set — Eid Mubarak!</h2>
+    <p style="margin-top:10px">
+      Once deployed, just share the link with all your friends:<br>
+      <strong style="color:#D4AF37;font-size:1rem">eid-gift-box-yourname.vercel.app</strong><br><br>
+      They create an account, you send them a gift box,<br>
+      they shake it 3 times to reveal your Eid surprise! 🎉
+    </p>
+    <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="https://console.firebase.google.com" target="_blank"
+        style="padding:10px 20px;borderRadius:10px;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.3);color:#D4AF37;font-size:0.85rem;text-decoration:none">
+        🔥 Open Firebase →
+      </a>
+      <a href="https://github.com" target="_blank"
+        style="padding:10px 20px;borderRadius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:0.85rem;text-decoration:none">
+        📦 Open GitHub →
+      </a>
+      <a href="https://vercel.com" target="_blank"
+        style="padding:10px 20px;borderRadius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-size:0.85rem;text-decoration:none">
+        🚀 Open Vercel →
+      </a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard?.writeText(pre.innerText).then(()=>{
+      btn.textContent = '✓ Copied!';
+      setTimeout(()=>btn.textContent='Copy',2000);
+    });
+  });
+});
+</script>
+</body>
+</html>
