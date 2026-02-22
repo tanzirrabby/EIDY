@@ -3,26 +3,36 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const admin = require('firebase-admin');
-const fs = require('fs');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// SAFETY CHECK: Only start Firebase if the key file exists
-const keyPath = './serviceAccountKey.json';
+// --- PRODUCTION FIREBASE INITIALIZATION ---
 let db;
-if (fs.existsSync(keyPath)) {
-    const serviceAccount = require(keyPath);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+try {
+    // If running on Vercel, it uses the Environment Variable string
+    // If running locally, it looks for the file
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
+        : require('./serviceAccountKey.json');
+
+    if (!admin.apps.length) {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+    }
     db = admin.firestore();
     console.log("✅ Firebase Connected");
-} else {
-    console.log("⚠️ Warning: serviceAccountKey.json missing. Database updates won't work, but server will stay running.");
+} catch (error) {
+    console.log("⚠️ Firebase Warning: No valid service account found. DB updates will fail.");
 }
 
+// --- URL CONFIGURATION ---
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+// For Vercel, BACKEND_URL and FRONTEND_URL are often the same if using rewrites
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 const PORT = process.env.PORT || 5000;
 
 // INITIATE PAYMENT
@@ -35,14 +45,14 @@ app.post('/api/init-payment', async (req, res) => {
             cus_name: senderName || "Guest",
             cus_email: "test@test.com",
             cus_phone: "01700000000",
-            desc: "Eid Salami",
+            desc: `Eid Salami for Box ${boxId}`,
             currency: "BDT",
             amount: amount,
             tran_id: `TRX_${Date.now()}`,
-            opt_a: boxId,
+            opt_a: boxId, // Storing boxId here so it returns in the success webhook
             success_url: `${BACKEND_URL}/api/payment-success`,
-fail_url: `${BACKEND_URL}/api/payment-fail`,
-cancel_url: `${BACKEND_URL}/api/payment-cancel`,
+            fail_url: `${BACKEND_URL}/api/payment-fail`,
+            cancel_url: `${BACKEND_URL}/api/payment-cancel`,
             type: "json"
         };
         const { data } = await axios.post('https://sandbox.aamarpay.com/jsonpost.php', paymentData);
@@ -57,13 +67,26 @@ app.post('/api/payment-success', async (req, res) => {
     const { opt_a, amount, mer_txnid } = req.body;
     try {
         if (db && opt_a) {
-            await db.collection('boxes').doc(opt_a).update({ paid: true, salamiAmount: amount });
+            // Updating the 'boxes' collection in Firestore
+            await db.collection('boxes').doc(opt_a).update({ 
+                paid: true, 
+                salamiAmount: amount,
+                trxId: mer_txnid 
+            });
+            console.log(`✅ Box ${opt_a} updated in DB.`);
         }
-    } catch (err) { console.log("DB Update Error:", err.message); }
-    res.redirect(`${FRONTEND_URL}/payment-success?trxId=${mer_txnid}`);
+    } catch (err) { 
+        console.log("❌ DB Update Error:", err.message); 
+    }
+    res.redirect(`${FRONTEND_URL}/payment-success?trxId=${mer_txnid}&amount=${amount}`);
 });
 
 app.post('/api/payment-fail', (req, res) => res.redirect(`${FRONTEND_URL}/payment-fail`));
 
+// Export for Vercel
+module.exports = app;
 
-app.listen(PORT, () => console.log(`🟢 Server is LIVE on port ${PORT}`));
+// Only listen if running locally
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => console.log(`🟢 Server is LIVE on port ${PORT}`));
+}
