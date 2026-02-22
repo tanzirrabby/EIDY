@@ -17,7 +17,8 @@ const PaymentComponent = ({ boxId, senderName }) => {
             // This calls your Node.js backend
             const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const response = await axios.post(`${baseURL}/api/init-payment`, {
+// ✅ NEW WAY
+const response = await axios.post('/api/init-payment', {
     amount: amount,
     boxId: boxId,
     senderName: senderName,
