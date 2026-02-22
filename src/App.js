@@ -186,7 +186,8 @@ function AuthScreen({ onLogin }) {
         <p style={{textAlign:"center",fontSize:"0.85rem",color:"rgba(255,255,255,0.3)",
           marginTop:20,lineHeight:1.6}}>
           Shake the box to reveal your Eid surprise! 🎁<br/>
-          Share your username so friends can send you gifts.
+          Share your username so friends can send you gifts.<br/>
+                      @tanzirabby
         </p>
       </div>
     </div>
