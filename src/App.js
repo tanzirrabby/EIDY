@@ -9,6 +9,9 @@ import PaymentSuccess from './PaymentSuccess';
 import PaymentFail from './PaymentFail';
 import PaymentComponent from './PaymentComponent';
 
+import { requestForToken, messaging } from "./firebase"; // firebase.js থেকে ইমপোর্ট
+import { onMessage } from "firebase/messaging";
+
 /* ═══════════════════════════════════════════════════
    CONSTANTS & DATA
 ═══════════════════════════════════════════════════ */
@@ -141,14 +144,19 @@ function AuthScreen({ onLogin }) {
         <div style={{textAlign:"center",marginBottom:28}}>
           <div style={{fontSize:"3.5rem",animation:"moonFloat 4s ease-in-out infinite",
             filter:`drop-shadow(0 0 20px ${GOLD}99)`,marginBottom:12}}>🎁</div>
-          <h1 style={{fontFamily:"'Cinzel Decorative',cursive",fontSize:"1.4rem",
+          
+          {/* 👇 একদম অরিজিনাল Cinzel Decorative ফন্ট 👇 */}
+          <h1 style={{fontFamily:"'Great Vibes', cursive",fontSize:"1.4rem",
             background:`linear-gradient(130deg,${GOLD},${GOLD2},${GOLD})`,
             backgroundSize:"220% 220%",WebkitBackgroundClip:"text",
             WebkitTextFillColor:"transparent",backgroundClip:"text",
             animation:"shimmer 4s linear infinite",letterSpacing:2}}>Eid Gift Box</h1>
+          
           <p style={{fontFamily:"'Amiri',serif",color:"rgba(212,175,55,0.5)",
             fontSize:"1rem",marginTop:6,letterSpacing:2}}>عيد الفطر المبارك</p>
         </div>
+
+        {/* 👇 Sign in ও Create Account এর অরিজিনাল Cormorant Garamond ফন্ট 👇 */}
         <div style={{display:"flex",gap:4,background:"rgba(255,255,255,0.03)",
           border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:4,marginBottom:22}}>
           {["login","register"].map(m=>(
@@ -658,41 +666,58 @@ function CreateGift({ user, onCreated, showToast }) {
     setAiLoad(false);
   };
 
-  const send = async () => {
+const send = async () => {
     if (!to.trim()||!msg.trim()) { showToast("Fill in recipient and message!"); return; }
     if (salami > 0 && !trxId.trim()) { showToast("Please enter the TrxID for your Salami!"); return; }
     
     setSending(true);
     try {
+      // ১. বাটনে ক্লিক করার সাথে সাথেই ব্যাকএন্ডে নোটিফিকেশন পাঠানোর রিকোয়েস্ট পাঠিয়ে দেওয়া হচ্ছে! 🚀
+      if (!salami || salami <= 0) {
+        try {
+          // ⚠️ আপনার ব্যাকএন্ড যদি লাইভ থাকে (যেমন Vercel/Render), তাহলে localhost এর বদলে সেই লিংকটা দেবেন।
+          const backendUrl = "http://localhost:5000"; 
+          
+          fetch(`${backendUrl}/api/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              receiverUsername: to.trim().toLowerCase(),
+              senderName: user.displayName || user.username
+            })
+          }).then(res => console.log("🔔 Notification triggered instantly on click!"));
+        } catch (notifErr) {
+          console.error("Failed to trigger notification:", notifErr);
+        }
+      }
+
+      // ২. ডাটাবেসে বক্স সেভ করা
       const boxRef = await addDoc(collection(db,"boxes"),{
         from: user.username, fromDisplay: user.displayName||user.username,
         to: to.trim().toLowerCase(),
-        giftType: type, 
-        theme: theme, 
-        message: msg.trim(),
-        salamiAmount: Number(salami) || 0,
-        mfsMethod: mfs,
-        trxId: trxId.trim(),
-        image: image,
-        opened: false, 
-        createdAt: serverTimestamp(),
+        giftType: type, theme: theme, message: msg.trim(),
+        salamiAmount: Number(salami) || 0, mfsMethod: mfs, trxId: trxId.trim(),
+        image: image, opened: false, createdAt: serverTimestamp(),
       });
-      // Send notification
+      
+      // ৩. ওয়েবসাইটের ভেতরের (In-App) নোটিফিকেশন
       await addDoc(collection(db,"notifications"),{
         to: to.trim().toLowerCase(),
         from: user.username,
         text: `${user.displayName||user.username} sent you an Eid gift box! 🎁`,
-        read: false,
-        boxId: boxRef.id,
-        createdAt: serverTimestamp(),
+        read: false, boxId: boxRef.id, createdAt: serverTimestamp(),
       });
+
       onCreated();
       setSent(true);
       setTimeout(()=>{ 
         setSent(false); setSending(false); setTo(""); setMsg(""); 
         setSalami(""); setTrxId(""); setImage(null); setPreview(false); 
       },2000);
-    } catch(e) { showToast("Error sending. Try again!"); setSending(false); }
+    } catch(e) { 
+      showToast("Error sending. Try again!"); 
+      setSending(false); 
+    }
   };
 
   return (
@@ -875,7 +900,7 @@ function NotifPanel({ username, onClose }) {
    1️⃣ MAIN HOME COMPONENT 
 ═══════════════════════════════════════════════════ */
 function Home() {
-  const [user,       setUser]       = useState(null);
+  const [user,           setUser]       = useState(null);
   const [authChecked,setAuthChecked]= useState(false);
   const [inbox,      setInbox]      = useState([]);
   const [sent,       setSent]       = useState([]);
@@ -926,6 +951,40 @@ function Home() {
     return unsub;
   },[user]);
 
+  // 🔔 NEW: Firebase Push Notifications Listener
+  useEffect(() => {
+    const setupNotifications = async () => {
+        const token = await requestForToken();
+        
+        if (token && user?.uid) {
+            try {
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, { 
+                    fcmToken: token 
+                });
+                console.log("Token saved to database successfully!");
+            } catch (error) {
+                console.error("Error saving token: ", error);
+            }
+        }
+    };
+
+    if (user) {
+        setupNotifications();
+    }
+
+    const unsubscribe = onMessage(messaging, (payload) => {
+        console.log("Foreground message received: ", payload);
+        // নোটিফিকেশন আসলে আপনার সুন্দর showToast-এ দেখাবে
+        showToast(`🎁 ${payload.notification.title}`);
+    });
+
+    return () => {
+        unsubscribe(); 
+    };
+  }, [user]);
+
+  // Handle Box Open
   const handleOpen = async (boxId) => {
     await updateDoc(doc(db,"boxes",boxId),{ opened:true, openedAt:serverTimestamp() });
     const box = inbox.find(b=>b.id===boxId);
@@ -1032,6 +1091,8 @@ function Home() {
         </div>
       </div>
 
+      {/* NotifPanel component is used here */}
+      {/* Ensure you have NotifPanel component defined further down in your file */}
       {notifOpen&&<NotifPanel username={user.username} onClose={()=>setNotifOpen(false)}/>}
 
       {/* MAIN */}
@@ -1075,6 +1136,7 @@ function Home() {
               <p style={{fontSize:"1rem",color:"rgba(255,255,255,0.45)",marginTop:6,fontStyle:"italic"}}>Craft a surprise — your friend shakes it open to reveal your message!</p>
             </div>
             <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(212,175,55,0.14)",borderRadius:24,padding:"32px 24px"}}>
+              {/* Ensure CreateGift is defined below in your file */}
               <CreateGift user={user} onCreated={()=>setTab("sent")} showToast={showToast}/>
             </div>
           </div>

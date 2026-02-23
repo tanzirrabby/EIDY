@@ -14,17 +14,19 @@ const PaymentComponent = ({ boxId, senderName }) => {
         }
         setLoading(true);
         try {
-            // This calls your Node.js backend
-           
-// ✅ NEW WAY
-const response = await axios.post('/api/init-payment', {
-    amount: amount,
-    boxId: boxId,
-    senderName: senderName,
-});
+            // ✅ আপনার লাইভ Vercel ব্যাকএন্ড লিংক এখানে দেওয়া হলো (Localhost এর বদলে)
+            const backendUrl = "https://eidy-tanzir.vercel.app"; 
 
-            if (response.data.url) {
+            const response = await axios.post(`${backendUrl}/api/init-payment`, {
+                amount: amount,
+                boxId: boxId,
+                senderName: senderName,
+            });
+
+            if (response.data && response.data.url) {
                 window.location.href = response.data.url; // Redirects to aamarPay
+            } else {
+                alert("Payment gateway URL not received. Try again.");
             }
         } catch (error) {
             console.error("Payment Error:", error);
@@ -56,7 +58,7 @@ const response = await axios.post('/api/init-payment', {
                 style={{
                     display: "block", width: "100%", padding: "12px", borderRadius: "8px",
                     background: loading ? "#555" : GOLD, color: "#000", fontWeight: "bold",
-                    cursor: "pointer", border: "none"
+                    cursor: loading ? "not-allowed" : "pointer", border: "none"
                 }}
             >
                 {loading ? "Processing..." : `Pay ৳${amount || '0'}`}

@@ -8,8 +8,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // --- PRODUCTION FIREBASE INITIALIZATION ---
 let db;
@@ -32,9 +30,10 @@ try {
 }
 
 // --- URL CONFIGURATION ---
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-// For Vercel, BACKEND_URL and FRONTEND_URL are often the same if using rewrites
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+// --- URL CONFIGURATION ---
+// Vercel-এর জন্য এখানে লাইভ লিংকগুলো বসাতে হবে, localhost নয়!
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://eidy-tanzir.vercel.app";
+const BACKEND_URL = process.env.BACKEND_URL || "https://eidy-tanzir.vercel.app";
 const PORT = process.env.PORT || 5000;
 
 // INITIATE PAYMENT
@@ -64,26 +63,74 @@ app.post('/api/init-payment', async (req, res) => {
     }
 });
 
-// SUCCESS ROUTE
+// 🔔 SUCCESS ROUTE & PUSH NOTIFICATION
 app.post('/api/payment-success', async (req, res) => {
-    const { opt_a, amount, mer_txnid } = req.body;
+    const { opt_a, amount, mer_txnid, cus_name } = req.body;
+    
     try {
         if (db && opt_a) {
-            // Updating the 'boxes' collection in Firestore
+            // ১. ডাটাবেসে বক্স আপডেট করা
             await db.collection('boxes').doc(opt_a).update({ 
                 paid: true, 
                 salamiAmount: amount,
                 trxId: mer_txnid 
             });
             console.log(`✅ Box ${opt_a} updated in DB.`);
+
+            // ২. বক্সের রিসিভার কে, সেটা ডাটাবেস থেকে খুঁজে বের করা
+            const boxDoc = await db.collection('boxes').doc(opt_a).get();
+            
+            if (boxDoc.exists) {
+                const boxData = boxDoc.data();
+                // যার কাছে বক্স যাচ্ছে (বক্সের মালিক)
+                const receiverUsername = boxData.to; 
+                // যে টাকা পাঠিয়েছে
+                const senderName = cus_name || boxData.from || "Someone";
+
+                // ৩. রিসিভারের username দিয়ে users কালেকশন থেকে তার fcmToken খোঁজা
+                const usersRef = db.collection('users');
+                const userQuery = await usersRef.where('username', '==', receiverUsername).get();
+                
+                if (!userQuery.empty) {
+                    const userDoc = userQuery.docs[0];
+                    const fcmToken = userDoc.data().fcmToken;
+
+                    // ৪. টোকেন থাকলে তার মোবাইলে/ব্রাউজারে নোটিফিকেশন পাঠানো
+                    if (fcmToken) {
+                        const message = {
+                            notification: {
+                                title: "🎁 New Eid Salami!",
+                                body: `${senderName} just sent you ${amount} BDT. Check your Gift Box inbox!`
+                            },
+                            token: fcmToken
+                        };
+                        
+                        // Firebase Admin-এর মাধ্যমে পুশ নোটিফিকেশন সেন্ড
+                        await admin.messaging().send(message);
+                        console.log(`🔔 Notification sent successfully to ${receiverUsername}`);
+                    } else {
+                        console.log(`⚠️ No FCM token found for user ${receiverUsername}`);
+                    }
+                }
+            }
         }
     } catch (err) { 
-        console.log("❌ DB Update Error:", err.message); 
+        console.log("❌ DB/Notification Error:", err.message); 
     }
+    
+    // ৫. সবশেষে ইউজারকে পেমেন্ট সাকসেস পেইজে রিডাইরেক্ট করে দেওয়া
     res.redirect(`${FRONTEND_URL}/payment-success?trxId=${mer_txnid}&amount=${amount}`);
 });
 
-app.post('/api/payment-fail', (req, res) => res.redirect(`${FRONTEND_URL}/payment-fail`));
+// FAIL ROUTE
+app.post('/api/payment-fail', (req, res) => {
+    res.redirect(`${FRONTEND_URL}/payment-fail`);
+});
+
+// CANCEL ROUTE
+app.post('/api/payment-cancel', (req, res) => {
+    res.redirect(`${FRONTEND_URL}/`);
+});
 
 // Export for Vercel
 module.exports = app;
