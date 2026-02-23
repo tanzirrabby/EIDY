@@ -1,15 +1,3 @@
-// src/firebase.js
-// ─────────────────────────────────────────────────────────
-// STEP 1: Go to https://console.firebase.google.com
-// STEP 2: Click "Add project" → name it "eid-gift-box"
-// STEP 3: Click "Web" icon (</>) to add a web app
-// STEP 4: Copy your firebaseConfig values below
-// STEP 5: In Firebase console → Build → Firestore Database
-//          → Create database → Start in TEST MODE → Done
-// STEP 6: In Firebase console → Build → Authentication
-//          → Get started → Email/Password → Enable → Save
-// ─────────────────────────────────────────────────────────
-
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";

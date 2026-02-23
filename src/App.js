@@ -95,6 +95,9 @@ function AuthScreen({ onLogin }) {
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+  
+  // ✅ NEW: State for password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   const handle = async () => {
     if (!username.trim() || !password.trim()) { setError("Fill in all fields"); return; }
@@ -167,9 +170,38 @@ function AuthScreen({ onLogin }) {
             <input value={displayName} onChange={e=>setDisplay(e.target.value)}
               placeholder="Display name (optional)…" maxLength={30} style={inputSt}/>
           )}
-          <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="Password (min 6 chars)…" style={inputSt}
-            onKeyDown={e=>e.key==="Enter"&&handle()}/>
+          
+          {/* ✅ NEW: Password input with Emoji Toggle */}
+          <div style={{ position: "relative", width: "100%" }}>
+            <input 
+              type={showPassword ? "text" : "password"} 
+              value={password} 
+              onChange={e=>setPassword(e.target.value)}
+              placeholder="Password (min 6 chars)…" 
+              style={{ ...inputSt, paddingRight: "40px" }} // Keeps your exact inputSt, just adds room for emoji
+              onKeyDown={e=>e.key==="Enter"&&handle()}
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowPassword(!showPassword)}
+              title={showPassword ? "Hide password" : "Show password"}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "1.2rem",
+                padding: "0",
+                color: "inherit"
+              }}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
+          {/* ✅ END OF NEW PASSWORD INPUT */}
           
           {error&&<p style={{fontSize:"0.9rem",color:"#F87171",textAlign:"center"}}>{error}</p>}
           <button onClick={handle} disabled={loading} style={{
